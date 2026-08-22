@@ -99,9 +99,114 @@ No text, no logos. Square format, 800x800px, PNG.
 
 ---
 
+---
+
+## 5. Icon còn thiếu cho các nút hành động (bổ sung 2026-08-21)
+
+Đã rà lại toàn bộ code thật (`SoGym_A7_v5.html`) và xác nhận: 4 icon tab dưới, 3 icon "nghỉ giữa set", icon màn trống, ảnh nền toàn app, banner ngang, và icon của nút Bắt đầu buổi tập/Thêm Cardio **đã được ghép vào code rồi** (đúng như mục 1-4 ở trên). Các nút dưới đây thì **CHƯA có icon riêng** (chỉ có chữ hoặc emoji có sẵn của hệ điều hành) — cần vẽ bổ sung.
+
+**Định dạng: giống hệt mục 2 (PNG vuông 256x256px, vẽ trực tiếp trên nền đặc — ghi rõ đúng mã màu nền của TỪNG nút bên dưới vì không phải nút nào cũng cùng 1 màu nền).**
+
+**PROMPT (dùng chung, đổi phần "biểu tượng cho" và "nền" mỗi lần tạo 1 icon khác):**
+```
+Create a single simple flat icon, centered, on a solid-color background exactly [ĐIỀN MÃ MÀU NỀN — xem bảng bên dưới] (no gradient, no texture on the background itself).
+Style: [ĐIỀN VÀO ĐÂY: dùng ĐÚNG mô tả phong cách bạn đã dùng khi tạo các icon cũ trong thư mục pics/ — để đồng bộ 100%, nên đính kèm 1-2 icon cũ, ví dụ "ultra-simple line icon_home.png", làm ảnh tham chiếu phong cách cho AI xem trước khi vẽ]
+The icon represents: [ĐIỀN VÀO ĐÂY — xem cột "Gợi ý biểu tượng" trong bảng bên dưới]
+Keep the icon simple and bold enough to stay readable at small size (~24px) — avoid fine detail,
+thin lines, or small text. Icon color: [ĐIỀN MÃ MÀU ICON — xem bảng]. Square format, 256x256px, PNG.
+```
+
+| Tên file cần đặt | Nút trong app | Nền vẽ icon (mã màu) | Màu icon | Gợi ý biểu tượng |
+|---|---|---|---|---|
+| `sogym_btnicon_logset.png` | "Ghi nhận set" (tab Nhập set) | `#121214` | `#c6ff3d` | dấu tích trên sổ tay / bút ghi số |
+| `sogym_btnicon_startrest.png` | "Bắt đầu nghỉ" (tab Nhập set) | `#c6ff3d` (nền nút màu lime đặc) | `#1a2600` (tối, để nổi trên nền lime) | đồng hồ bấm giờ / nút play |
+| `sogym_btnicon_endsession.png` | "Kết thúc buổi tập" (tab Hôm nay) | `#121214` | `#ff6b4a` (cam cảnh báo, khớp viền nút) | cờ đích / dấu tích lớn |
+| `sogym_btnicon_exportcsv.png` | "Xuất Excel" (tab Lịch sử) | `#c6ff3d` | `#1a2600` | mũi tên xuống + bảng tính nhỏ |
+| `sogym_btnicon_backupjson.png` | "💾 Sao lưu" (tab Lịch sử) | `#121214` | `#c6ff3d` | ổ đĩa lưu / đám mây có mũi tên xuống |
+| `sogym_btnicon_resetall.png` | "🗑 Xóa toàn bộ dữ liệu" (tab Lịch sử) | `#121214` | `#ff6b4a` (cam cảnh báo) | thùng rác |
+| `sogym_btnicon_gsheetbackup.png` | "☁️ Sao lưu lên Google Sheets" (tab Lịch sử) | `#121214` | `#c6ff3d` | đám mây + mũi tên lên |
+| `sogym_btnicon_gsheetrestore.png` | "⬇ Khôi phục từ Google Sheets" (tab Lịch sử) | `#121214` | `#c6ff3d` | đám mây + mũi tên xuống |
+
+---
+
+## 6. Icon tròn nhỏ thay thế ký tự Unicode hiện có (trong thẻ danh sách bài tập)
+
+**Mục đích:** 3 nút nhỏ hình tròn nằm trong mỗi dòng bài tập/cardio của buổi tập (tab Nhập set) hiện đang dùng ký tự chữ thô (★ ☆ ✕ ⧉) thay vì icon vẽ riêng.
+
+**Định dạng:** PNG vuông **128x128px** (hiển thị nhỏ ~32-40px), vẽ trên nền đặc `#1c1c1f` (đúng màu nền thẻ card mà các nút này nằm trong, KHÔNG dùng `#121214` cho nhóm này).
+
+**PROMPT (dùng chung, đổi phần biểu tượng):**
+```
+Create a single ultra-simple line icon, centered, on a solid background exactly #1c1c1f.
+Style: [ĐIỀN VÀO ĐÂY: cùng phong cách với các icon khác, xem gợi ý đính kèm ảnh tham chiếu ở mục 5]
+The icon represents: [ĐIỀN VÀO ĐÂY — xem bảng]
+Extremely minimal silhouette, must stay recognizable at 32x32px. Single color only: [ĐIỀN MÃ MÀU — xem bảng].
+No shading, no gradient, no fine detail. Square format, 128x128px, PNG.
+```
+
+| Tên file cần đặt | Vị trí trong app | Màu icon | Gợi ý biểu tượng |
+|---|---|---|---|
+| `sogym_glyph_fav_off.png` | Nút yêu thích — trạng thái CHƯA đánh dấu | `#6b6b72` (xám) | ngôi sao viền rỗng |
+| `sogym_glyph_fav_on.png` | Nút yêu thích — trạng thái ĐÃ đánh dấu | `#ffc93d` (vàng) | ngôi sao đặc |
+| `sogym_glyph_remove.png` | Nút xoá 1 bài/cardio khỏi buổi tập đang dở | `#a3a3aa` (xám nhạt) | dấu X hoặc thùng rác nhỏ |
+| `sogym_glyph_copyprev.png` | Nút copy số liệu (reps/kg) từ set trước | `#c6ff3d` (lime) | 2 tờ giấy chồng lên nhau (copy) |
+
+---
+
+## 7. Icon thay thế khi ảnh bài tập lỗi/mất mạng
+
+**Mục đích:** hiện khi ảnh bài tập (tải từ GitHub) bị lỗi hoặc chưa từng cache mà đang offline, app hiện tạm emoji 🏋 mặc định của điện thoại — muốn thay bằng icon tự vẽ cho đồng bộ phong cách.
+
+**Định dạng:** PNG vuông **256x256px**, vẽ trên nền đặc `#26262a` (đúng màu nền ô ảnh đại diện bài tập).
+
+**PROMPT:**
+```
+Create a single simple flat icon, centered, on a solid background exactly #26262a.
+Style: [ĐIỀN VÀO ĐÂY: cùng phong cách với các icon khác]
+The icon represents: a dumbbell or barbell, used as a placeholder image when an exercise photo
+fails to load. Keep it simple and bold enough to stay readable at 48x48px. Icon color: #c6ff3d.
+Square format, 256x256px, PNG.
+```
+
+**Tên file cần đặt:** `sogym_fallback_exercise_thumb.png`
+
+---
+
+## 8. Bộ nhân vật mascot ngẫu nhiên khi mở/đóng app (MỚI)
+
+**Mục đích:** hiện màn hình chờ lúc mở app (splash screen) chỉ có 1 logo tĩnh duy nhất. Muốn thay bằng **1 bộ nhiều nhân vật/tư thế khác nhau** (cùng 1 phong cách nhất quán), mỗi lần mở app code sẽ chọn ngẫu nhiên 1 nhân vật để hiện — tạo cảm giác sinh động, đổi mới mỗi lần mở.
+
+**Số lượng đề xuất:** 6-8 nhân vật/tư thế khác nhau (nhiều hơn thì random cảm giác đa dạng hơn, nhưng cũng tốn công vẽ hơn — 6-8 là mức vừa đủ để không lặp lại quá nhanh khi mở app nhiều lần trong ngày).
+
+**Định dạng:** PNG vuông **512x512px** mỗi nhân vật, vẽ trên nền đặc `#121214` (đúng màu nền `#splashScreen`, đã bao gồm cả logo tĩnh hiện tại — nên đính kèm logo cũ làm ảnh tham chiếu phong cách, xem cách lấy file bên dưới).
+
+**PROMPT (dùng chung, đổi số thứ tự/tư thế mỗi lần tạo 1 nhân vật):**
+```
+Create a single friendly character illustration, centered, on a solid background exactly #121214
+(near-black, no gradient, no texture on the background itself).
+Style: [ĐIỀN VÀO ĐÂY: cùng phong cách với toàn bộ icon khác trong app — nên đính kèm ảnh logo cũ
+(reference_current_logo.png) làm ảnh tham chiếu để AI giữ đúng phong cách nhân vật/nét vẽ]
+Character / pose #[SỐ THỨ TỰ 1-8]: [ĐIỀN VÀO ĐÂY — ví dụ: "doing a push-up", "flexing biceps",
+"drinking water after workout", "stretching", "giving a thumbs up", "resting on a dumbbell" —
+mỗi lần đổi 1 tư thế/hoạt động khác nhau, cùng 1 nhân vật hoặc vài nhân vật khác nhau đều được]
+Mood: energetic, motivating, friendly — fits a workout-tracking app splash screen. Main colors:
+lime-green #c6ff3d as accent, off-white #f4f4f0 for line work/highlights, staying within the
+dark #121214 background. No text, no logos. Square format, 512x512px, PNG.
+```
+
+**Tên file cần đặt:** `sogym_mascot_01.png`, `sogym_mascot_02.png`, ... lần lượt tới `sogym_mascot_08.png` (đánh số theo đúng thứ tự tạo, không cần theo thứ tự tư thế cụ thể nào).
+
+**Ảnh tham chiếu logo hiện tại:** đã trích xuất sẵn tại `design_assets/reference_current_logo.png` (180x180px, chính là logo/app-icon đang dùng thật trong app) — đính kèm file này khi nhắn AI vẽ mascot để giữ đúng phong cách nhân vật cũ nếu logo cũ vốn đã là 1 nhân vật/linh vật.
+
+---
+
+## Quy ước đặt tên file (áp dụng cho toàn bộ mục 5-8 ở trên)
+
+Đặt tên đúng theo bảng ở mỗi mục — đây là quy ước để sau này gửi lại cho Claude, Claude sẽ tự tra tên file để biết chính xác ghép vào đâu trong code, không cần giải thích lại từ đầu. Quy tắc chung: `sogym_<nhóm>_<vị trí>.png`, trong đó nhóm là `btnicon` (icon trong nút hành động), `glyph` (icon tròn nhỏ thay ký tự Unicode), `fallback` (ảnh thay thế khi lỗi), `mascot` (nhân vật màn splash).
+
 ## Sau khi có ảnh — bạn gửi lại cho tôi
 
 Gửi file ảnh (hoặc mô tả bạn đã lưu ở đâu), tôi sẽ:
 1. Kiểm tra kích thước/định dạng có đúng không
-2. Ghép vào đúng vị trí trong code (CSS `background-image` cho ảnh nền, `<img>` hoặc CSS `background` cho icon)
+2. Ghép vào đúng vị trí trong code (CSS `background-image` cho ảnh nền, `<img>` hoặc CSS `background` cho icon) — riêng bộ mascot (mục 8) sẽ cần thêm chút code JS để chọn ngẫu nhiên 1 ảnh mỗi lần mở app, thay cho logo tĩnh hiện tại
 3. Test lại để đảm bảo không vỡ giao diện, chữ vẫn đọc rõ, rồi mới báo hoàn thành
