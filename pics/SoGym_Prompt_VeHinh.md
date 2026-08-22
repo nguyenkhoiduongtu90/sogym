@@ -204,6 +204,66 @@ dark #121214 background. No text, no logos. Square format, 512x512px, PNG.
 
 Đặt tên đúng theo bảng ở mỗi mục — đây là quy ước để sau này gửi lại cho Claude, Claude sẽ tự tra tên file để biết chính xác ghép vào đâu trong code, không cần giải thích lại từ đầu. Quy tắc chung: `sogym_<nhóm>_<vị trí>.png`, trong đó nhóm là `btnicon` (icon trong nút hành động), `glyph` (icon tròn nhỏ thay ký tự Unicode), `fallback` (ảnh thay thế khi lỗi), `mascot` (nhân vật màn splash).
 
+---
+
+## 9. Icon còn thiếu cho tab "Cơ thể" (bổ sung 2026-08-22, sau khi thêm tab A8)
+
+**Cách đọc mục này:** mỗi mục con dưới đây có 2 phần rõ rệt:
+- 🟩 **"COPY CHO AI THIẾT KẾ"** — khối này copy **y nguyên**, dán thẳng vào ChatGPT (hoặc AI vẽ ảnh khác). Không thêm/bớt gì ngoài phần `[ĐIỀN VÀO ĐÂY: ...]`.
+- ⬜ **"Giải thích (không copy)"** — chỉ để bạn hiểu bối cảnh/vì sao cần ảnh này, AI thiết kế không cần đọc phần này, **đừng dán phần này vào AI**.
+
+Đã rà code thật (`SoGym_A8_v4.html`) để xác định đúng những gì còn thiếu — không phải mọi thứ trong tab Cơ thể đều thiếu ảnh:
+- 4 tiêu đề thẻ trong tab Cơ thể (📋 Nhập chỉ số / 🎯 Mục tiêu / 📈 Xu hướng / 🗂 Lịch sử Cơ thể) dùng emoji hệ điều hành — **giống hệt cách mọi tiêu đề thẻ khác trong app đã làm từ trước** (vd 🏃 Cardio buổi này, ☁️ Sao lưu Google Sheets), nên đây không phải chỗ thiếu, không cần vẽ.
+- Nút ✎ (sửa) / 🗑 (xoá) trong Lịch sử Cơ thể cũng dùng ký tự có sẵn — **giống hệt** cách các nút sửa/xoá khác trong toàn app đã làm (tab Lịch sử, tab Nhập set), nên cũng không thiếu.
+- Chỉ có **2 chỗ thực sự thiếu ảnh riêng** để tab Cơ thể đạt cùng mức hoàn thiện hình ảnh như các tab khác: (9.1) icon tab điều hướng dưới cùng, hiện đang tạm dùng emoji ⚖️; (9.2) icon cho nút chính "Lưu chỉ số".
+
+### 9.1 Icon tab điều hướng "Cơ thể" (thay thế tạm thời ⚖️)
+
+⬜ **Giải thích (không copy):** đây là icon nhỏ trong thanh tab dưới cùng, cùng hàng với 4 icon Hôm nay/Chọn bài/Nhập set/Lịch sử đã có sẵn (xem mục 3 ở trên) — icon thứ 5 này còn thiếu, tab đang tạm hiện chữ emoji ⚖️ thay thế. Định dạng giống hệt mục 3: PNG vuông 128x128px, nền `#121214`, 1 màu duy nhất `#c6ff3d`.
+
+🟩 **COPY CHO AI THIẾT KẾ:**
+```
+Create a single ultra-simple line icon, centered, on a solid background exactly #121214.
+Style: [ĐIỀN VÀO ĐÂY: dùng ĐÚNG mô tả phong cách bạn đã dùng cho 4 icon tab cũ (Hôm nay/Chọn
+bài/Nhập set/Lịch sử) — nên đính kèm 1 icon tab cũ làm ảnh tham chiếu để AI vẽ đúng cùng bộ]
+The icon represents: body measurement / body composition tracking — e.g. a simple weighing
+scale, or a body silhouette with a small measuring line.
+Extremely minimal silhouette style — must stay recognizable at 22x22px. Single color only:
+lime-green #c6ff3d. No shading, no gradient, no fine detail. Square format, 128x128px, PNG.
+```
+
+**Tên file cần đặt:** `sogym_navicon_body.png`
+
+### 9.2 Icon nút "Lưu chỉ số" (nút chính trong form nhập chỉ số Cơ thể)
+
+⬜ **Giải thích (không copy):** đây là nút chính (nền lime `#c6ff3d`, chữ tối `#1a2600`) để lưu cân nặng/calo/%mỡ/%cơ/ghi chú trong tab Cơ thể — cùng loại nút với "Bắt đầu nghỉ" đã được vẽ icon riêng ở mục 5, nên nên vẽ icon cho nút này để đồng bộ. Định dạng giống hệt mục 5: PNG vuông 256x256px, vẽ trên nền lime đặc.
+
+🟩 **COPY CHO AI THIẾT KẾ:**
+```
+Create a single simple flat icon, centered, on a solid-color background exactly #c6ff3d
+(no gradient, no texture on the background itself).
+Style: [MUTANT ORC GYM STYLE]
+The icon represents: saving/confirming data, such as a checkmark, a save/disk symbol, or a
+small clipboard with a checkmark.
+Keep the icon simple and bold enough to stay readable at small size (~24px) — avoid fine detail,
+thin lines, or small text. Icon color: #1a2600 (dark, to stay legible on the lime background).
+Square format, 256x256px, PNG.
+```
+
+**Tên file cần đặt:** `sogym_btnicon_savebody.png`
+
+---
+
+## 10. Về các "bảng thông báo nền trắng" bạn hỏi (alert/confirm) — KHÔNG phải việc vẽ ảnh
+
+Mục này **không có prompt để copy** — đây là giải thích, vì đây không phải vấn đề thiếu ảnh.
+
+Bảng bạn chụp màn hình gửi ("Buổi tập chưa có bài tập... Kết thúc mà không lưu gì?") là hộp thoại **gốc của trình duyệt/hệ điều hành** (`window.confirm()` — cùng họ với `alert()` và `prompt()` mà app đang dùng ở khoảng 35 chỗ trong code, ví dụ cả 3 lần hỏi xác nhận đặt mục tiêu ở tab Cơ thể cũng dùng `prompt()`). Loại hộp thoại này **không thể đổi màu/kiểu bằng CSS hay bằng ảnh** trong bất kỳ trình duyệt nào — đây là giới hạn bảo mật của trình duyệt (web page không được phép tự vẽ lại UI hệ thống), không phải lỗi hay thiếu sót của app.
+
+Cách duy nhất để bảng thông báo mang đúng phong cách tối/lime của app là **viết lại bằng code** — tự dựng 1 khung "modal" nổi lên giữa màn hình (nền `#1c1c1f` như thẻ card, nút bấm lime `#c6ff3d`, giống hệt phong cách sẵn có của app), rồi thay toàn bộ các chỗ đang gọi `alert()`/`confirm()`/`prompt()` sang gọi khung này thay vì hộp thoại gốc. Đây là việc code, không cần AI vẽ ảnh (trừ khi bạn muốn thêm 1 icon nhỏ trang trí bên trong khung, ví dụ dấu ⚠️/✓ tự vẽ — nếu muốn, báo tôi sẽ viết thêm prompt riêng).
+
+Vì đây là thay đổi xuất hiện ở **~35 chỗ trên toàn bộ app** (không riêng tab Cơ thể), không phải việc nhỏ tiện tay sửa — nên tôi chưa tự làm, cần bạn quyết định trước khi tôi bắt tay vào.
+
 ## Sau khi có ảnh — bạn gửi lại cho tôi
 
 Gửi file ảnh (hoặc mô tả bạn đã lưu ở đâu), tôi sẽ:
