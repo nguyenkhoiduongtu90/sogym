@@ -1546,6 +1546,19 @@ function populateSubgroupFilter(){
   if(list.indexOf(prev)!==-1) sel.value = prev;
 }
 
+/* v22 - Loi 2 (test thuc te 2026-09-04): renderCombo/renderCustomSubCombo (goi y khi go ten
+   nhom co) truoc day chi lay tu SUBGROUP_OPTIONS (21 nhom chuan, tinh) nen nhom co TUY CHINH
+   da khai bao truoc do (vd "Cầu vai (trap)") khong bao gio hien lai trong goi y o lan khai bao
+   sau, de go sai chinh ta / trung lap ten nhom voi cach viet khac. Ham nay gop SUBGROUP_OPTIONS
+   voi cac gia tri nhom co THAT dang co trong du lieu (allExercises/resolvedSub — cung nguon voi
+   populateSubgroupFilter), khu trung, sap xep, dung lam nguon goi y chung cho ca 2 combo box. */
+function getSubgroupSuggestionOptions(){
+  var values = {};
+  SUBGROUP_OPTIONS.forEach(function(o){ values[o] = true; });
+  allExercises().forEach(function(ex){ var s = resolvedSub(ex); if(s) values[s] = true; });
+  return Object.keys(values).sort(function(a,b){ return a.localeCompare(b, 'vi'); });
+}
+
 /* ================= MÀN HÔM NAY ================= */
 function renderHome(){
   document.getElementById('emptyState').style.display = state.sessionStarted ? 'none' : 'block';
@@ -1740,8 +1753,10 @@ document.getElementById('btnSaveCardio').addEventListener('click', function(){
   var kmRaw = kmEl.value.trim();
   var km = kmRaw === '' ? 0 : strictParseNumber(kmRaw);
   /* A9_v2: cardioCal cũng hiện dấu "." phân hàng ngàn (attachThousandInputFormatter) —
-     bỏ dấu trước khi parse, cùng cách xử lý với nutriCalInp ở btnSaveBody. */
-  var calRaw = calEl.value.trim().replace(/\./g,'');
+     bỏ dấu trước khi parse, cùng cách xử lý với nutriCalInp ở btnSaveBody.
+     v22 - Loi 1: sau khi bo dau "." phan cach nghin, doi dau "," (thap phan kieu vi-VN,
+     do attachThousandInputFormatter moi cho phep) thanh "." de strictParseNumber hieu dung. */
+  var calRaw = calEl.value.trim().replace(/\./g,'').replace(',', '.');
   var cal = calRaw === '' ? 0 : strictParseNumber(calRaw);
 
   var typeOK = !!type, minOK = min !== null && min > 0, kmOK = km !== null && km >= 0, calOK = cal !== null && cal >= 0; /* v11 (BUG-04): chặn số âm */
@@ -2118,7 +2133,8 @@ var subInp = document.getElementById('subgroupInput');
 var subList = document.getElementById('subgroupList');
 function renderCombo(filter){
   var f = filter.trim().toLowerCase();
-  var matches = f ? SUBGROUP_OPTIONS.filter(function(o){return o.toLowerCase().indexOf(f)!==-1}) : SUBGROUP_OPTIONS;
+  var opts = getSubgroupSuggestionOptions();
+  var matches = f ? opts.filter(function(o){return o.toLowerCase().indexOf(f)!==-1}) : opts;
   if(!matches.length){ subList.style.display='none'; return; }
   subList.innerHTML = matches.map(function(o){return '<div class="combo-opt">'+o+'</div>'}).join('');
   subList.style.display='block';
@@ -2237,7 +2253,8 @@ var customSubInp = document.getElementById('customSub');
 var customSubList = document.getElementById('customSubList');
 function renderCustomSubCombo(filter){
   var f = filter.trim().toLowerCase();
-  var matches = f ? SUBGROUP_OPTIONS.filter(function(o){return o.toLowerCase().indexOf(f)!==-1}) : SUBGROUP_OPTIONS;
+  var opts = getSubgroupSuggestionOptions();
+  var matches = f ? opts.filter(function(o){return o.toLowerCase().indexOf(f)!==-1}) : opts;
   if(!matches.length){ customSubList.style.display='none'; return; }
   customSubList.innerHTML = matches.map(function(o){return '<div class="combo-opt">'+o+'</div>'}).join('');
   customSubList.style.display='block';
@@ -2352,7 +2369,14 @@ document.getElementById('btnLogSet').addEventListener('click', function(){
   var newSet = {reps:reps, weight:weight, rm:rm};
   // Nếu đây không phải set đầu tiên của bài, ghi lại thời gian nghỉ đã dùng TRƯỚC set này
   // (đến từ lần nghỉ vừa rồi) để lần sau tính gợi ý theo lịch sử thật.
-  if(exObj.sets.length > 0){ newSet.restUsed = state.restSecondsTotal; }
+  // v22 - Loi 3 (test thuc te 2026-09-04): truoc day luon ghi = state.restSecondsTotal (thoi
+  // gian MUC TIEU/goi y), khong phai thoi gian THAT da nghi -> neu nguoi dung bam "Ghi nhan set"
+  // ngay khi con dang nghi giua chung (chua het gio, khong bam "Bo qua"), can dong bo lai
+  // restSecondsLeft tu wall-clock roi tinh elapsed = total - left moi ra dung so giay da nghi.
+  if(exObj.sets.length > 0){
+    if(state.restRunning) resyncRestTimerFromWallClock();
+    newSet.restUsed = Math.max(0, state.restSecondsTotal - state.restSecondsLeft);
+  }
   exObj.sets.push(newSet);
   renderSetRows();
   renderHome();
@@ -2472,7 +2496,16 @@ document.getElementById('btnStartRest').addEventListener('click', function(){
   if(state.restRunning) stopRestTimer(); else startRestTimer();
 });
 document.getElementById('btnSkipRest').addEventListener('click', function(){
+  /* v22 - Loi 3 (test thuc te 2026-09-04): bam "Bo qua, tap tiep luon" som (vd nghi 20s trong
+     khi muc tieu goi y la 60s) truoc day van bi ghi nhan la da nghi du 60s cho set tiep theo,
+     vi restSecondsLeft bi ve 0 ngay sau day, xoa mat du lieu can de tinh thoi gian THAT da nghi.
+     stopRestTimer() da tu resync restSecondsLeft chinh xac tu wall-clock TRUOC khi restRunning=
+     false, nen ngay sau do tinh duoc elapsed = total-left. Gan lai elapsed vao restSecondsTotal
+     de btnLogSet (o tren) doc ra dung so giay da nghi that (bien nay se duoc resetRestTimer()
+     ghi de gia tri moi cho set/bai tiep theo nen khong anh huong gi khac). */
   stopRestTimer();
+  var elapsed = Math.max(0, state.restSecondsTotal - state.restSecondsLeft);
+  state.restSecondsTotal = elapsed;
   state.restSecondsLeft = 0;
   updateRingUI();
 });
@@ -2919,8 +2952,10 @@ document.getElementById('btnSaveBody').addEventListener('click', async function(
 
   /* A9_v2: cRaw phải bỏ dấu "." phân hàng ngàn trước khi parse (ô nutriCalInp giờ hiển thị
      dạng "8.000" — xem loadBodyFormForDate/nutriCalFormatter). Không đụng wRaw/fRaw/mRaw vì
-     3 ô đó vẫn dùng dấu "." làm dấu thập phân như quy ước hiện có (không có hàng ngàn). */
-  var wRaw = wEl.value.trim(), fRaw = fEl.value.trim(), mRaw = mEl.value.trim(), cRaw = cEl.value.trim().replace(/\./g,'');
+     3 ô đó vẫn dùng dấu "." làm dấu thập phân như quy ước hiện có (không có hàng ngàn).
+     v22 - Loi 1: sau khi bo dau "." phan cach nghin, doi dau "," (thap phan kieu vi-VN, do
+     attachThousandInputFormatter moi cho phep) thanh "." de strictParseNumber hieu dung. */
+  var wRaw = wEl.value.trim(), fRaw = fEl.value.trim(), mRaw = mEl.value.trim(), cRaw = cEl.value.trim().replace(/\./g,'').replace(',', '.');
   var w = wRaw==='' ? null : strictParseNumber(wRaw);
   var f = fRaw==='' ? null : strictParseNumber(fRaw);
   var m = mRaw==='' ? null : strictParseNumber(mRaw);
@@ -3075,7 +3110,9 @@ function allTimeMaxByExercise(){
    chú thích ở đó. Mọi nơi gọi hàm này PHẢI truyền exerciseGroupKey(ex), không còn truyền ex.name. */
 function computeWorkoutTarget(key){
   var sessionsForEx = [];
-  for(var i=0;i<state.history.length && sessionsForEx.length<9;i++){
+  /* v22 - Loi 4 (test thuc te 2026-09-04): doi tu 9 xuong 6 lan tap gan nhat co du lieu cho
+     bai nay, theo yeu cau nguoi dung (muc tieu set/reps/kg bam sat phong do gan day hon). */
+  for(var i=0;i<state.history.length && sessionsForEx.length<6;i++){
     var sess = state.history[i];
     var exs = (sess.exercises||[]).filter(function(e){return exerciseGroupKey(e)===key && e.sets && e.sets.length>0;});
     if(exs.length===0) continue;
@@ -4115,6 +4152,13 @@ document.addEventListener('input', function(e){
   var el = e.target;
   var pos = el.selectionStart;
   var before = el.value;
+  /* v22 - Loi 1 (test thuc te 2026-09-04): ban phim so thap phan tren dien thoai (dac biet
+     Android/tieng Viet) hay phat ra dau PHAY "," thay vi dau CHAM "." khi bam phim thap phan.
+     Truoc day dau "," bi loc bo hoan toan (khong nam trong tap ky tu giu lai [^0-9.]) nen vd
+     go "0,5" con lai "05" - hieu nham thanh 5 thay vi 0.5. Nay quy dau "," ve dau "." NGAY
+     o buoc dau (truoc khi loc ky tu) de go duoc thap phan bang ca 2 dau, luu/hien thi thong
+     nhat theo quy uoc dau "." nhu cu (khong doi cach luu du lieu, chi doi cach nhan dau go). */
+  if(allowDecimal) before = before.replace(/,/g, '.');
   var cleaned = allowDecimal ? before.replace(/[^0-9.]/g, '') : before.replace(/[^0-9]/g, '');
   if(allowDecimal){
     var firstDot = cleaned.indexOf('.');
@@ -4122,7 +4166,7 @@ document.addEventListener('input', function(e){
       cleaned = cleaned.slice(0, firstDot+1) + cleaned.slice(firstDot+1).replace(/\./g, '');
     }
   }
-  if(cleaned !== before){
+  if(cleaned !== el.value){
     var removedBeforeCursor = before.slice(0, pos).length - cleaned.slice(0, pos).length;
     el.value = cleaned;
     var newPos = Math.max(0, pos - Math.max(0, removedBeforeCursor));
@@ -4144,21 +4188,28 @@ function attachThousandInputFormatter(id){
   var el = document.getElementById(id);
   if(!el) return;
   el.addEventListener('input', function(){
+    /* v22 - Loi 1 (test thuc te 2026-09-04): cho phep nhap toi da 1 chu so thap phan bang dau
+       PHAY "," (dung quy uoc vi-VN: dau "." la phan cach nghin, dau "," la phan cach thap phan),
+       vd go "8000,5" -> hien "8.000,5". Phan nguyen van duoc dinh dang phan cach nghin nhu cu. */
     var pos = el.selectionStart;
     var before = el.value;
-    var digitsBeforeCursor = before.slice(0, pos).replace(/[^0-9]/g, '').length;
-    var digitsOnly = before.replace(/[^0-9]/g, '');
-    var after = digitsOnly === '' ? '' : Number(digitsOnly).toLocaleString('vi-VN');
+    var commaIdx = before.indexOf(',');
+    var intRaw = commaIdx === -1 ? before : before.slice(0, commaIdx);
+    var decRaw = commaIdx === -1 ? '' : before.slice(commaIdx + 1).replace(/[^0-9]/g, '').slice(0,1);
+    var intDigits = intRaw.replace(/[^0-9]/g, '');
+    var meaningfulBeforeCursor = before.slice(0, pos).replace(/[^0-9,]/g, '').length;
+    var after = intDigits === '' ? '' : Number(intDigits).toLocaleString('vi-VN');
+    if(commaIdx !== -1) after += ',' + decRaw;
     if(after === before) return;
     el.value = after;
-    if(digitsBeforeCursor === 0){
+    if(meaningfulBeforeCursor === 0){
       try{ el.setSelectionRange(0, 0); }catch(e2){}
       return;
     }
     var count = 0, newPos = after.length;
     for(var i=0; i<after.length; i++){
-      if(/[0-9]/.test(after[i])) count++;
-      if(count === digitsBeforeCursor){ newPos = i+1; break; }
+      if(/[0-9,]/.test(after[i])) count++;
+      if(count === meaningfulBeforeCursor){ newPos = i+1; break; }
     }
     try{ el.setSelectionRange(newPos, newPos); }catch(e2){}
   });
