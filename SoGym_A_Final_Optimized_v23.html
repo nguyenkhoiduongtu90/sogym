@@ -3687,28 +3687,115 @@ function gsheetGetOrCreateSheetId(){
   });
 }
 
+/* ============ v23 - Fix loi sao luu Google Sheets HTTP 400 (test thuc te 2026-09-06) ============
+   Nguyen nhan goc: truoc day moi ban sao luu = 1 dong [timestamp, JSON] — TOAN BO chuoi JSON nhet
+   vao 1 o duy nhat (cot B). Google Sheets co gioi han cung 50.000 ky tu/o, du lieu nguoi dung da
+   vuot nguong (10 buoi, 334 set...) nen API tra ve 400 INVALID_ARGUMENT "chua nhieu hon toi da
+   50000 ky tu trong mot o don nhat". Du lieu chi tang dan theo thoi gian nen phai doi cach ghi:
+   CHIA chuoi JSON thanh nhieu manh <=45.000 ky tu (chua margin an toan duoi nguong 50K), ghi thanh
+   nhieu dong trong CUNG 1 lan append: [timestamp, "i/n", manh_i]. Khi khoi phuc: gom cac dong cung
+   timestamp, kiem tra DU n manh roi ghep lai theo thu tu. Ban sao luu <=1 manh van ghi dang cu
+   [timestamp, JSON] (2 cot) de tuong thich nguoc 100%; duong khoi phuc doc duoc ca 2 dang. */
+var GSHEET_CELL_CHUNK_LIMIT = 45000;
+
+function gsheetBuildBackupPayload(){
+  /* Gop chung payload cho ca 2 duong sao luu (thu cong + tu dong sau buoi tap) — truoc day
+     2 noi tu build rieng 2 ban giong het nhau, de lech nhau khi sua sau nay. */
+  return {
+    _sogym_backup: true, _version: DATA_SCHEMA_VERSION, _schemaVersion: DATA_SCHEMA_VERSION,
+    _exportedAt: new Date().toString(),
+    sessionStarted: state.sessionStarted, sessionExercises: state.sessionExercises,
+    sessionCardio: state.sessionCardio, sessionBuoiLabel: state.sessionBuoiLabel,
+    sessionStartedAtText: state.sessionStartedAtText, sessionDateISO: state.sessionDateISO,
+    history: state.history, customOverrides: state.customOverrides, customExercises: state.customExercises,
+    body: state.body, nutrition: state.nutrition, goals: state.goals,
+    lastBackupISO: state.lastBackupISO
+  };
+}
+
+function gsheetChunkString(str){
+  /* Chia chuoi thanh cac manh <= GSHEET_CELL_CHUNK_LIMIT ky tu. Khong cat giua cap surrogate
+     (emoji trong ghi chu la 2 don vi UTF-16) — neu ky tu cuoi manh la high-surrogate thi lui
+     diem cat lai 1 de cap emoji nam tron trong 1 manh, tranh sinh ky tu hong khi Google luu. */
+  var chunks = [];
+  var i = 0;
+  while(i < str.length){
+    var end = Math.min(i + GSHEET_CELL_CHUNK_LIMIT, str.length);
+    if(end < str.length){
+      var code = str.charCodeAt(end - 1);
+      if(code >= 0xD800 && code <= 0xDBFF) end -= 1;
+    }
+    chunks.push(str.slice(i, end));
+    i = end;
+  }
+  if(chunks.length === 0) chunks.push('');
+  return chunks;
+}
+
+function gsheetBuildBackupRows(nowIso, jsonStr){
+  var chunks = gsheetChunkString(jsonStr);
+  if(chunks.length === 1) return [[ nowIso, jsonStr ]]; /* dang cu 2 cot — tuong thich nguoc */
+  var rows = [];
+  for(var i=0;i<chunks.length;i++){
+    rows.push([ nowIso, (i+1)+'/'+chunks.length, chunks[i] ]);
+  }
+  return rows;
+}
+
+function gsheetParseBackupRows(rows){
+  /* Ghep cac dong tho tu Sheets thanh danh sach ban sao luu hoan chinh {ts, json}.
+     - Dong 2 cot [ts, json]: ban sao luu dang cu (1 o) -> dung nguyen.
+     - Dong 3 cot [ts, "i/n", manh]: gom theo ts, du n manh moi tinh la hop le (ban ghi do dang/
+       thieu manh se bi bo qua thay vi khoi phuc ra du lieu cut — an toan hon). */
+  var items = [];
+  var groups = {};
+  var order = [];
+  for(var i=0;i<rows.length;i++){
+    var row = rows[i];
+    if(!row || !row[0]) continue;
+    if(row.length >= 3 && row[2] !== undefined && row[2] !== ''){
+      var m = /^(\d+)\/(\d+)$/.exec(String(row[1]||''));
+      if(!m) continue;
+      var ts = row[0];
+      if(!groups[ts]){ groups[ts] = { ts: ts, total: parseInt(m[2],10), parts: {} , count: 0, _seq: i }; order.push(ts); }
+      var g = groups[ts];
+      var idx = parseInt(m[1],10);
+      if(!g.parts[idx]){ g.parts[idx] = row[2]; g.count++; }
+    }else if(row[1]){
+      items.push({ ts: row[0], json: row[1], _seq: i });
+    }
+  }
+  for(var k=0;k<order.length;k++){
+    var grp = groups[order[k]];
+    if(grp.count !== grp.total) continue; /* thieu manh -> bo qua ban ghi hong */
+    var joined = '';
+    var ok = true;
+    for(var p=1;p<=grp.total;p++){
+      if(grp.parts[p] === undefined){ ok = false; break; }
+      joined += grp.parts[p];
+    }
+    if(ok) items.push({ ts: grp.ts, json: joined, _seq: grp._seq });
+  }
+  /* Giu thu tu xuat hien trong Sheet (cu -> moi) nhu truoc: sap theo vi tri dong dau tien */
+  items.sort(function(a,b){ return a._seq - b._seq; });
+  return items;
+}
+
 function gsheetBackup(){
   document.getElementById('btnGSheetBackup').disabled = true;
   gsheetSetStatus('Đang kết nối Google...');
   gsheetGetOrCreateSheetId().then(function(sheetId){
     gsheetSetStatus('Đang ghi bản sao lưu lên Google Sheets...');
-    var payload = {
-      _sogym_backup: true, _version: DATA_SCHEMA_VERSION, _schemaVersion: DATA_SCHEMA_VERSION,
-      _exportedAt: new Date().toString(),
-      sessionStarted: state.sessionStarted, sessionExercises: state.sessionExercises,
-      sessionCardio: state.sessionCardio, sessionBuoiLabel: state.sessionBuoiLabel,
-      sessionStartedAtText: state.sessionStartedAtText, sessionDateISO: state.sessionDateISO,
-      history: state.history, customOverrides: state.customOverrides, customExercises: state.customExercises,
-      body: state.body, nutrition: state.nutrition, goals: state.goals,
-      lastBackupISO: state.lastBackupISO
-    };
+    /* v23: build payload dung chung + chia manh <=45.000 ky tu/o (gioi han Sheets 50.000 ky tu/o)
+       — xem khoi chu thich lon phia tren. Range A:C vi dang chia manh co 3 cot. */
+    var payload = gsheetBuildBackupPayload();
     var nowIso = new Date().toISOString();
     var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + sheetId + '/values/' +
-      encodeURIComponent(GSHEET_TAB_NAME + '!A:B') + ':append?valueInputOption=RAW';
+      encodeURIComponent(GSHEET_TAB_NAME + '!A:C') + ':append?valueInputOption=RAW';
     return gsheetApiFetch(url, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ values: [[ nowIso, JSON.stringify(payload) ]] })
+      body: JSON.stringify({ values: gsheetBuildBackupRows(nowIso, JSON.stringify(payload)) })
     }).then(function(res){
       if(res.status === 404){
         /* Sheet đã lưu trước đó bị xóa/đổi ID ở ngoài app (vd user tự xóa trong Drive) — con
@@ -3755,23 +3842,16 @@ function autoBackupAfterSessionEnd(){
   if(!navigator.onLine) return;
   if(!gsheetAccessToken) return;
   gsheetGetOrCreateSheetId().then(function(sheetId){
-    var payload = {
-      _sogym_backup: true, _version: DATA_SCHEMA_VERSION, _schemaVersion: DATA_SCHEMA_VERSION,
-      _exportedAt: new Date().toString(),
-      sessionStarted: state.sessionStarted, sessionExercises: state.sessionExercises,
-      sessionCardio: state.sessionCardio, sessionBuoiLabel: state.sessionBuoiLabel,
-      sessionStartedAtText: state.sessionStartedAtText, sessionDateISO: state.sessionDateISO,
-      history: state.history, customOverrides: state.customOverrides, customExercises: state.customExercises,
-      body: state.body, nutrition: state.nutrition, goals: state.goals,
-      lastBackupISO: state.lastBackupISO
-    };
+    /* v23: dung chung payload + chia manh nhu gsheetBackup — truoc day duong tu dong nay cung
+       nhet JSON vao 1 o nen cung dinh loi 50.000 ky tu/o (that bai IM LANG, chi log console). */
+    var payload = gsheetBuildBackupPayload();
     var nowIso = new Date().toISOString();
     var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + sheetId + '/values/' +
-      encodeURIComponent(GSHEET_TAB_NAME + '!A:B') + ':append?valueInputOption=RAW';
+      encodeURIComponent(GSHEET_TAB_NAME + '!A:C') + ':append?valueInputOption=RAW';
     return gsheetApiFetch(url, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ values: [[ nowIso, JSON.stringify(payload) ]] })
+      body: JSON.stringify({ values: gsheetBuildBackupRows(nowIso, JSON.stringify(payload)) })
     }).then(function(res){
       if(res.status === 404){ localStorage.removeItem(GSHEET_ID_STORAGE_KEY); }
       if(!res.ok) throw new Error('HTTP '+res.status);
@@ -3798,8 +3878,10 @@ function gsheetRestore(){
     return;
   }
   gsheetSetStatus('Đang tải danh sách bản sao lưu...');
+  /* v23: doc A2:C (them cot C vi ban sao luu lon gio chia manh 3 cot) — ban cu 2 cot van doc
+     duoc binh thuong trong cung range. */
   var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + sheetId + '/values/' +
-    encodeURIComponent(GSHEET_TAB_NAME + '!A2:B');
+    encodeURIComponent(GSHEET_TAB_NAME + '!A2:C');
   gsheetApiFetch(url, {method:'GET'}).then(function(res){
     if(res.status === 404){
       localStorage.removeItem(GSHEET_ID_STORAGE_KEY);
@@ -3809,8 +3891,9 @@ function gsheetRestore(){
     return res.json();
   }).then(function(data){
     var rows = (data && data.values) || [];
-    var items = [];
-    for(var i=0;i<rows.length;i++){ if(rows[i] && rows[i][0] && rows[i][1]) items.push({ts:rows[i][0], json:rows[i][1]}); }
+    /* v23: gom + ghep cac dong chia manh (3 cot) va dong dang cu (2 cot) thanh danh sach ban
+       sao luu hoan chinh — xem gsheetParseBackupRows. */
+    var items = gsheetParseBackupRows(rows);
     if(items.length === 0){
       gsheetSetStatus('Chưa có bản sao lưu nào trên Google Sheets.', true);
       showAppAlert('Chưa có bản sao lưu nào trên Google Sheets.');
