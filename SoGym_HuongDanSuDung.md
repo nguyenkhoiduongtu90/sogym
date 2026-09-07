@@ -1,6 +1,6 @@
 # Hướng dẫn sử dụng Sổ Gym
 
-Mở link app đang dùng (`SoGym_A_Final_Optimized_v23.html`, ví dụ qua GitHub Pages) bằng trình duyệt trên điện thoại. App tự động lưu liên tục — không cần bấm "lưu" gì thêm ngoài các nút Lưu được nêu bên dưới. Không cần mạng để dùng, trừ lúc sao lưu/khôi phục lên Google Sheets — dải trạng thái nhỏ ở đầu màn hình cho biết đang **Online** hay **Offline**, chỉ để biết chứ không chặn thao tác gì.
+Mở link app đang dùng (`SoGym_A_Final_Optimized_v24.html`, ví dụ qua GitHub Pages) bằng trình duyệt trên điện thoại. App tự động lưu liên tục — không cần bấm "lưu" gì thêm ngoài các nút Lưu được nêu bên dưới. Không cần mạng để dùng, trừ lúc sao lưu/khôi phục lên Google Sheets — dải trạng thái nhỏ ở đầu màn hình cho biết đang **Online** hay **Offline**, chỉ để biết chứ không chặn thao tác gì.
 
 App có 5 tab dưới cùng: **Hôm nay** · **Chọn bài** · **Nhập set** · **Lịch sử** · **Cơ thể**.
 

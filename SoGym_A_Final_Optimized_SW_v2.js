@@ -1,3 +1,13 @@
+// Service Worker cho Sổ Gym — SW_v2 (vòng QA audit v23 → bản v24).
+// ĐÂY LÀ FILE MỚI, chép nguyên từ SoGym_A_Final_Optimized_SW_v1.js (file đó KHÔNG bị sửa,
+// vẫn phục vụ mọi bản HTML cũ đã confirm OK). Chỉ 1 thay đổi duy nhất so với SW_v1 — sửa
+// Lỗi 3 trong báo cáo QA v23: nhánh dự phòng ngoại tuyến của điều hướng (navigation) chọn
+// SAI file HTML. Chi tiết xem khối chú thích "v24 — Fix Lỗi 3" trong hàm fetch bên dưới.
+// 3 tên cache (sogym-cache-v4 / sogym-images-v1 / sogym-splash-v1) GIỮ NGUYÊN, cố ý: đổi tên
+// sẽ khiến activate() xoá sạch bản offline người dùng đang có, trong khi lỗi này không liên
+// quan gì tới định dạng dữ liệu đã cache.
+//
+// ===== Chú thích gốc từ SW_v1 (giữ nguyên để tra cứu) =====
 // Service Worker cho Sổ Gym — A_Final_WIP (Final Audit Batch 3, Fix 3.4).
 // Dựa trên SW_A7_v2.js (KHÔNG bị sửa, giữ nguyên cho các bản đã confirm OK trước đó:
 // A4.5_v9/A6_v1/A6_v2/A7_v1/A7_v2) — 3 thay đổi so với SW_A7_v2.js, tất cả đều tái dùng
@@ -94,6 +104,10 @@ self.addEventListener('fetch', function(event){
       try{
         var res = await fetch(req);
         var cache = await caches.open(CACHE_NAME);
+        // v24 — Fix Lỗi 3: đã đo thật trên Chrome — cache.put() lên một key đã tồn tại TỰ ĐỘNG
+        // đẩy entry đó xuống cuối thứ tự chèn (đúng spec: put = delete rồi append). Vì vậy
+        // KHÔNG cần touchCacheEntry ở đây; bản HTML vừa mở online đã luôn nằm cuối, chính là
+        // tín hiệu "mới nhất / vừa dùng gần nhất" mà nhánh dự phòng ngoại tuyến bên dưới dùng.
         await cache.put(req, res.clone()); // ĐƯỢC waitUntil bảo vệ (nằm trong chuỗi respondWith)
         // Batch 3 (Fix 3.4): trim ngay sau khi ghi — đây chính là nguồn phình cache chính (mỗi
         // bản HTML đổi tên qua các đời version dev cộng dồn lại vĩnh viễn nếu không trim).
@@ -108,9 +122,25 @@ self.addEventListener('fetch', function(event){
           event.waitUntil(touchCacheEntry(cache, req, cached.clone()));
           return cached;
         }
+        // v24 — Fix Lỗi 3. Đã tái hiện thật trên v23: cache chứa [v21, v22, v23],
+        // mở offline một URL chưa từng cache → SW trả về v21 (bản CŨ NHẤT), người dùng thấy
+        // app "tự quay về đời cũ". Hai nguyên nhân, sửa cả hai:
+        //   a) .find() trả về phần tử ĐẦU TIÊN của cache.keys(), mà thứ tự đó là thứ tự chèn
+        //      → phần tử đầu = file HTML cũ nhất. Nay lọc rồi lấy phần tử CUỐI (mới nhất /
+        //      vừa dùng gần nhất, nhờ thứ tự chèn mà cache.put() duy trì sẵn).
+        //   b) k.url.endsWith('.html') sai khi URL có query string (vd ...v24.html?x=1 khi
+        //      ép tải lại bỏ cache) → không nhận ra đó là HTML. Nay xét pathname, bỏ query.
+        // Đồng thời thêm một lượt match với ignoreSearch TRƯỚC khi rơi xuống đây: cùng một
+        // file HTML nhưng khác query string thì vẫn nên dùng lại đúng bản đã cache. Lượt
+        // ignoreSearch cố ý KHÔNG touch, vì cache.put(req) với req mang query khác sẽ tạo
+        // thêm một entry mới thay vì cập nhật entry cũ, làm cache phình vô ích.
+        var looseMatch = await cache.match(req, {ignoreSearch: true});
+        if(looseMatch) return looseMatch;
         var allKeys = await cache.keys();
-        var anyHtml = allKeys.find(function(k){ return k.url.endsWith('.html'); });
-        if(anyHtml) return cache.match(anyHtml);
+        var htmlKeys = allKeys.filter(function(k){
+          try{ return new URL(k.url).pathname.endsWith('.html'); }catch(e){ return false; }
+        });
+        if(htmlKeys.length) return cache.match(htmlKeys[htmlKeys.length - 1]);
         return new Response(
           'Không có mạng và chưa có bản lưu ngoại tuyến cho trang này. Hãy mở app 1 lần khi có mạng trước.',
           {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}}
